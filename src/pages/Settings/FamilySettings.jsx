@@ -9,6 +9,7 @@ export default function FamilySettings() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [userRole, setUserRole] = useState("member");
   const [loading, setLoading] = useState(true);
+  const [inviteLink, setInviteLink] = useState(""); // לשמירת הקישור
 
   useEffect(() => {
     const fetchGroup = async () => {
@@ -67,47 +68,53 @@ export default function FamilySettings() {
 
   const handleInvite = async () => {
     if (!inviteEmail || !groupId) {
-      alert("אנא הזן אימייל תקין.");
+      alert("נא להזין אימייל תקין.");
+      return;
+    }
+
+    // בדיקת פורמט מייל בסיסית
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail)) {
+      alert("כתובת המייל אינה תקינה.");
       return;
     }
 
     try {
-      const res = await fetch("/api/invite-user", {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const res = await fetch("/api/create-invitation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail, group_id: groupId }),
+        body: JSON.stringify({ 
+          email: inviteEmail, 
+          group_id: groupId,
+          invited_by: userData.user.id 
+        }),
       });
 
-      const text = await res.text();
-      let result;
-      try {
-        result = JSON.parse(text);
-      } catch {
-        console.error("Invalid JSON response:", text);
-        alert("שגיאת שרת: תשובה לא תקינה מהשרת");
-        return;
-      }
+      const result = await res.json();
 
       if (!res.ok) {
         console.error(result);
-        alert("שגיאה: " + (result.error || result.message || "שליחה נכשלה"));
+        alert("שגיאה: " + (result.error || "שליחה נכשלה"));
         return;
       }
 
-      alert("ההזמנה נשלחה בהצלחה 🎉");
+      // שמור את הקישור להצגה
+      setInviteLink(result.invite_link);
 
-      const newMember = {
-        id: Math.random().toString(36).substring(2),
-        email: inviteEmail,
-        role: "member",
-      };
-
-      setMembers((prev) => [...prev, newMember]);
+      alert(`ההזמנה נוצרה בהצלחה! 🎉\n\nהקישור הועתק למטה - שלח אותו ל-${inviteEmail}`);
+      
       setInviteEmail("");
     } catch (err) {
       console.error(err);
       alert("שגיאת שרת: " + err.message);
     }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    alert("הקישור הועתק ללוח! 📋");
   };
 
   const handleRemove = async (memberId) => {
@@ -116,8 +123,12 @@ export default function FamilySettings() {
       return;
     }
 
+    const confirmed = window.confirm("האם אתה בטוח שברצונך להסיר חבר זה?");
+    if (!confirmed) return;
+
     await supabase.from("group_members").delete().eq("id", memberId);
     setMembers((m) => m.filter((x) => x.id !== memberId));
+    alert("החבר הוסר בהצלחה.");
   };
 
   if (loading) {
@@ -177,9 +188,33 @@ export default function FamilySettings() {
               onClick={handleInvite}
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
             >
-              הוסף
+              צור הזמנה
             </button>
           </div>
+
+          {/* הצגת קישור ההזמנה */}
+          {inviteLink && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-semibold mb-2">📧 קישור הזמנה:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={inviteLink}
+                  readOnly
+                  className="flex-1 bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                >
+                  העתק
+                </button>
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                שלח קישור זה למשתמש החדש. הקישור תקף ל-7 ימים.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
