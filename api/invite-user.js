@@ -20,8 +20,10 @@ export default async function handler(req, res) {
     }
 
     // 1️⃣ צור משתמש חדש או קיים במערכת Supabase Auth
-    const { data: user, error: userError } =
-      await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+ const { data: user, error: userError } =
+  await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: "https://hometrackpro.vercel.app/set-password",
+  });
 
     if (userError) throw userError;
 
