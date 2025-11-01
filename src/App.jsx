@@ -5,6 +5,8 @@ import IncomeExpenses from "./pages/IncomeExpenses";
 import MonthlyDetails from "./pages/MonthlyDetails";
 import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
+import Inbox from "./pages/Inbox"; // 👈 נוסיף את זה
+
 
 import DashboardHome from "./pages/DashboardHome";
 import Tasks from "./pages/Tasks";
@@ -53,6 +55,9 @@ export default function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" />} />
             <Route path="/details" element={<MonthlyDetails />} />
+             <Route path="/settings" element={<Settings />} />
+              <Route path="/inbox" element={<Inbox />} /> {/* 👈 חדש */}
+             
           </Routes>
         </main>
       </div>
