@@ -1,0 +1,62 @@
+# ---------------------------
+# Node / Package managers
+# ---------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---------------------------
+# Build output
+# ---------------------------
+dist/
+dist-ssr/
+.vite/
+
+# ---------------------------
+# Environment files (VERY IMPORTANT)
+# Never push API keys or secrets
+# ---------------------------
+.env
+.env.*
+!.env.example   # allow an example file without secrets
+
+# ---------------------------
+# Supabase (local development)
+# ---------------------------
+supabase/.temp/
+supabase/.branches/
+supabase/docker/
+supabase/config.json
+
+# But DO allow backups you created manually:
+supabase_backup/
+
+# ---------------------------
+# Logs
+# ---------------------------
+logs/
+*.log
+
+# ---------------------------
+# Editor directories and files
+# ---------------------------
+.vscode/*
+!.vscode/extensions.json   # allow extensions config
+
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# macOS
+.DS_Store
+
+# ---------------------------
+# Misc
+# ---------------------------
+*.local
