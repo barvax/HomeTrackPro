@@ -16,15 +16,19 @@ export default function FamilySettings() {
   const [userRole, setUserRole] = useState<"owner" | "member">("member");
   const [loading, setLoading] = useState(true);
 
-  // Fetch group + members
   useEffect(() => {
     const fetchGroup = async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const userId = userData?.user?.id;
-        if (!userId) return;
+        // ✅ הגנה מפני session ריק
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData?.user) {
+          console.warn("No active session");
+          return;
+        }
 
-        // Get group ID and role
+        const userId = userData.user.id;
+
+        // --- טוען את פרטי הקבוצה ---
         const { data: gm, error: gmError } = await supabase
           .from("group_members")
           .select("group_id, role")
@@ -36,7 +40,6 @@ export default function FamilySettings() {
         setGroupId(gm.group_id);
         setUserRole(gm.role);
 
-        // Fetch group details
         const { data: groupData } = await supabase
           .from("groups")
           .select("id, name, is_premium")
@@ -48,7 +51,7 @@ export default function FamilySettings() {
           setIsPremium(groupData.is_premium);
         }
 
-        // Fetch all members
+        // --- טוען את החברים בקבוצה ---
         const { data: membersData } = await supabase
           .from("group_members")
           .select("id, role, user_id")
@@ -56,7 +59,6 @@ export default function FamilySettings() {
 
         if (!membersData) return;
 
-        // Fetch user list securely from backend
         const response = await fetch("/api/list-users");
         const { users } = await response.json();
 
@@ -77,9 +79,10 @@ export default function FamilySettings() {
     fetchGroup();
   }, []);
 
-  // Invite new member (via server API)
+  // ✅ פונקציית הזמנה משופרת
   const handleInvite = async () => {
-    if (!inviteEmail || !groupId) return;
+    if (!inviteEmail || !groupId) return alert("אנא הזן אימייל תקין.");
+
     try {
       const res = await fetch("/api/invite-user", {
         method: "POST",
@@ -88,14 +91,32 @@ export default function FamilySettings() {
       });
 
       const result = await res.json();
-      if (res.ok) {
-        alert("הזמנה נשלחה בהצלחה 🎉");
-        setMembers([...members, { id: result.user.id, email: result.user.email, role: "member" }]);
-        setInviteEmail("");
-      } else {
-        alert("שגיאה: " + result.error);
+
+      if (!res.ok) {
+        console.error(result);
+        alert("שגיאה: " + (result.error || result.message || "שליחה נכשלה"));
+        return;
       }
+
+      alert("ההזמנה נשלחה בהצלחה 🎉");
+
+      // ✅ בדיקה בטוחה אם יש user בתשובה
+      const newMember = result.user
+        ? {
+            id: result.user.id,
+            email: result.user.email,
+            role: "member" as const,
+          }
+        : {
+            id: crypto.randomUUID(),
+            email: inviteEmail,
+            role: "member" as const,
+          };
+
+      setMembers((prev) => [...prev, newMember]);
+      setInviteEmail("");
     } catch (err: any) {
+      console.error(err);
       alert("שגיאת שרת: " + err.message);
     }
   };
@@ -103,7 +124,7 @@ export default function FamilySettings() {
   const handleRemove = async (memberId: string) => {
     if (userRole !== "owner") return alert("רק בעל הקבוצה יכול להסיר חברים.");
     await supabase.from("group_members").delete().eq("id", memberId);
-    setMembers(members.filter((m) => m.id !== memberId));
+    setMembers((m) => m.filter((x) => x.id !== memberId));
   };
 
   if (loading) {
