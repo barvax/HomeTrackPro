@@ -7,6 +7,7 @@ import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
 import Inbox from "./pages/Inbox"; // 👈 נוסיף את זה
 import SetPassword from "./pages/SetPassword";
+import Join from "./pages/Join"
 
 
 import DashboardHome from "./pages/DashboardHome";
@@ -59,6 +60,7 @@ export default function App() {
              <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} /> {/* 👈 חדש */}
                <Route path="/set-password" element={<SetPassword />} />
+                  <Route path="/join" element={<Join />} />
              
           </Routes>
         </main>
