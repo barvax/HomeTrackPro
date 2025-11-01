@@ -1,0 +1,5 @@
+# אחרי שעשית שינויים
+# git add .
+# git commit -m "Feature: monthly details filter & edit modal"
+# git push
+# Vercel יפרוס לבד
