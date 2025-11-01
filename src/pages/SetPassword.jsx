@@ -1,38 +1,39 @@
-// src/pages/SetPassword.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 
 export default function SetPassword() {
   const navigate = useNavigate();
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [tokenValid, setTokenValid] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash;
-    const accessToken = new URLSearchParams(hash.replace("#", "?")).get("access_token");
+    const params = new URLSearchParams(hash.replace("#", "?"));
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
 
-    if (!accessToken) {
-      setMessage("לא נמצא טוקן גישה. הקישור לא תקין.");
+    if (!accessToken || !refreshToken) {
+      setMessage("לא נמצא טוקן גישה. הקישור לא תקין או שפג תוקפו.");
       setLoading(false);
       return;
     }
 
-    // יצירת סשן זמני לפי ה-token
+    // יצירת סשן זמני לפי הטוקנים
     supabase.auth
       .setSession({
         access_token: accessToken,
-        refresh_token: accessToken,
+        refresh_token: refreshToken,
       })
       .then(({ error }) => {
         if (error) {
-          console.error(error);
-          setMessage("שגיאה באימות הקישור.");
+          console.error("Session error:", error);
+          setMessage("שגיאה באימות הקישור. ייתכן שפג תוקפו.");
         } else {
-          setMessage("התחברות הצליחה! בחר סיסמה חדשה.");
-          setToken(accessToken);
+          setMessage("התחברת בהצלחה! כעת ניתן לקבוע סיסמה חדשה.");
+          setTokenValid(true);
         }
         setLoading(false);
       });
@@ -40,7 +41,10 @@ export default function SetPassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!password) return;
+    if (!password) {
+      setMessage("יש להזין סיסמה חדשה.");
+      return;
+    }
 
     const { error } = await supabase.auth.updateUser({ password });
 
@@ -48,20 +52,43 @@ export default function SetPassword() {
       console.error(error);
       setMessage("שגיאה בשמירת הסיסמה. נסה שוב.");
     } else {
-      setMessage("הסיסמה נשמרה בהצלחה!");
-      setTimeout(() => navigate("/invite-confirmation"), 1500);
+      setMessage("הסיסמה נשמרה בהצלחה! מעביר אותך לדף הבא...");
+      setTimeout(() => navigate("/invite-confirmation"), 1800);
     }
   };
 
-  if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>טוען...</p>;
+  if (loading)
+    return (
+      <div
+        style={{
+          textAlign: "center",
+          marginTop: "100px",
+          fontSize: "18px",
+          direction: "rtl",
+        }}
+      >
+        טוען נתונים...
+      </div>
+    );
 
   return (
-    <div style={{ maxWidth: 400, margin: "60px auto", textAlign: "center", direction: "rtl" }}>
+    <div
+      style={{
+        maxWidth: 400,
+        margin: "60px auto",
+        padding: "24px",
+        textAlign: "center",
+        direction: "rtl",
+        backgroundColor: "white",
+        borderRadius: "12px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      }}
+    >
       <h2>קביעת סיסמה חדשה</h2>
-      <p>{message}</p>
+      <p style={{ color: "#555", marginBottom: "16px" }}>{message}</p>
 
-      {token && (
-        <form onSubmit={handleSubmit} style={{ marginTop: 20 }}>
+      {tokenValid && (
+        <form onSubmit={handleSubmit}>
           <input
             type="password"
             placeholder="הקלד סיסמה חדשה"
@@ -69,10 +96,10 @@ export default function SetPassword() {
             onChange={(e) => setPassword(e.target.value)}
             style={{
               width: "100%",
-              padding: 10,
-              borderRadius: 6,
+              padding: "10px",
+              borderRadius: "8px",
               border: "1px solid #ccc",
-              marginBottom: 10,
+              marginBottom: "12px",
               textAlign: "center",
             }}
             required
@@ -80,12 +107,14 @@ export default function SetPassword() {
           <button
             type="submit"
             style={{
-              backgroundColor: "#2563eb",
-              color: "#fff",
-              border: "none",
+              backgroundColor: "#111",
+              color: "white",
               padding: "10px 20px",
-              borderRadius: 6,
+              borderRadius: "8px",
+              border: "none",
               cursor: "pointer",
+              width: "100%",
+              fontWeight: "bold",
             }}
           >
             שמור סיסמה
