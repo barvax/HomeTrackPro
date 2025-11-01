@@ -37,17 +37,24 @@ export default async function handler(req, res) {
       });
     }
 
-    // בדוק אם המשתמש כבר בקבוצה
-    const { data: existingMember } = await supabaseAdmin
-      .from("group_members")
-      .select("id")
-      .eq("group_id", group_id)
-      .eq("user_id", invited_by);
+    // בדוק אם המייל המוזמן כבר משויך למשתמש שנמצא בקבוצה
+    // קודם נמצא את ה-user_id לפי המייל
+    const { data: existingUser } = await supabaseAdmin.auth.admin.listUsers();
+    const userWithEmail = existingUser?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    
+    if (userWithEmail) {
+      // אם המשתמש קיים, בדוק אם הוא כבר בקבוצה
+      const { data: existingMember } = await supabaseAdmin
+        .from("group_members")
+        .select("id")
+        .eq("group_id", group_id)
+        .eq("user_id", userWithEmail.id);
 
-    if (existingMember && existingMember.length > 0) {
-      return res.status(400).json({ 
-        error: "User is already a member of this group" 
-      });
+      if (existingMember && existingMember.length > 0) {
+        return res.status(400).json({ 
+          error: "User is already a member of this group" 
+        });
+      }
     }
 
     // בדוק אם יש כבר הזמנה pending לאימייל הזה בקבוצה הזו
