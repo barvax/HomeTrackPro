@@ -6,6 +6,7 @@ import MonthlyDetails from "./pages/MonthlyDetails";
 import Login from "./components/Login";
 import Sidebar from "./components/Sidebar";
 import Inbox from "./pages/Inbox"; // 👈 נוסיף את זה
+import SetPassword from "./pages/SetPassword";
 
 
 import DashboardHome from "./pages/DashboardHome";
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/details" element={<MonthlyDetails />} />
              <Route path="/settings" element={<Settings />} />
               <Route path="/inbox" element={<Inbox />} /> {/* 👈 חדש */}
+               <Route path="/set-password" element={<SetPassword />} />
              
           </Routes>
         </main>
