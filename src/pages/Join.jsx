@@ -141,30 +141,27 @@ export default function Join() {
       }
 
       // הוסף את המשתמש לקבוצה
-      const { error: memberError } = await supabase
-        .from("group_members")
-        .insert({
-          group_id: invitation.group_id,
+      const acceptResponse = await fetch('/api/accept-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: searchParams.get("token"),
           user_id: authData.user.id,
-          role: "member",
-        });
+        })
+      });
 
-      if (memberError) {
-        console.error("Error adding to group:", memberError);
-        setError("שגיאה בהוספה לקבוצה: " + memberError.message);
+      const acceptResult = await acceptResponse.json();
+
+      if (!acceptResult.success) {
+        console.error("Error adding to group:", acceptResult.error);
+        setError("שגיאה בהוספה לקבוצה: " + acceptResult.error);
         setIsSubmitting(false);
         return;
       }
 
-      // עדכן את ההזמנה כ"התקבלה"
-      const { error: updateError } = await supabase
-        .from("group_invitations")
-        .update({ status: "accepted" })
-        .eq("id", invitation.id);
-
-      if (updateError) {
-        console.error("Error updating invitation:", updateError);
-      }
+  
 
       // הצלחה!
       alert(`ברוך הבא לקבוצת ${invitation.groups.name}! 🎉`);
