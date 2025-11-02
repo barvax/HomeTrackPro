@@ -19,21 +19,44 @@ export default function FamilySettings() {
 
         const userId = userData.user.id;
 
-        const { data: gm, error: gmError } = await supabase
+        // 1) שלוף את כל החברות של המשתמש (ללא .single)
+        const { data: memberships, error: gmError } = await supabase
           .from("group_members")
           .select("group_id, role")
-          .eq("user_id", userId)
-          .single();
+          .eq("user_id", userId);
 
-        if (gmError || !gm) return;
+        if (gmError || !memberships || memberships.length === 0) {
+          setLoading(false);
+          return;
+        }
 
-        setGroupId(gm.group_id);
-        setUserRole(gm.role);
+        // 2) קבע group פעיל:
+        //    א. פרמטר ב-URL (?group_id=...)
+        //    ב. localStorage ("activeGroupId")
+        //    ג. קבוצה שאינני owner בה (מקרה משתמש שהוזמן)
+        //    ד. אחרת – הראשונה
+        const url = new URL(window.location.href);
+        const urlGroupId = url.searchParams.get("group_id");
+        const storedGroupId = localStorage.getItem("activeGroupId");
+
+        let activeGroupId =
+          urlGroupId ||
+          storedGroupId ||
+          (memberships.find(m => m.role !== "owner")?.group_id) ||
+          memberships[0].group_id;
+
+        setGroupId(activeGroupId);
+        localStorage.setItem("activeGroupId", activeGroupId);
+
+        // תפקיד המשתמש בקבוצה הפעילה
+        const myRole = memberships.find(m => m.group_id === activeGroupId)?.role || "member";
+        setUserRole(myRole);
+
 
         const { data: groupData } = await supabase
           .from("groups")
           .select("id, name, is_premium")
-          .eq("id", gm.group_id)
+          .eq("id", activeGroupId)
           .single();
 
         if (groupData) {
@@ -44,10 +67,13 @@ export default function FamilySettings() {
         const { data: membersData } = await supabase
           .from("group_members")
           .select("id, role, user_id")
-          .eq("group_id", gm.group_id);
+          .eq("group_id", activeGroupId);
 
         const response = await fetch("/api/list-users");
-        const { users } = await response.json();
+ if (!response.ok) {
+   throw new Error("list-users failed");
+ }
+ const { users } = await response.json();
 
         const formatted = membersData.map((m) => ({
           id: m.id,
@@ -81,14 +107,14 @@ export default function FamilySettings() {
 
     try {
       const { data: userData } = await supabase.auth.getUser();
-      
+
       const res = await fetch("/api/create-invitation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          email: inviteEmail, 
+        body: JSON.stringify({
+          email: inviteEmail,
           group_id: groupId,
-          invited_by: userData.user.id 
+          invited_by: userData.user.id
         }),
       });
 
@@ -104,7 +130,7 @@ export default function FamilySettings() {
       setInviteLink(result.invite_link);
 
       alert(`ההזמנה נוצרה בהצלחה! 🎉\n\nהקישור הועתק למטה - שלח אותו ל-${inviteEmail}`);
-      
+
       setInviteEmail("");
     } catch (err) {
       console.error(err);
