@@ -8,27 +8,10 @@ export default function VerifyEmail() {
   const email = searchParams.get("email");
   const groupName = searchParams.get("group");
 
-  useEffect(() => {
-    // בדוק אם המשתמש כבר מחובר (במקרה שאימת מייל)
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // אם יש session - המייל אומת, נווט ל-dashboard
-        navigate("/dashboard");
-      }
-    };
-
-    checkAuth();
-
-    // האזן לשינויים באימות
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        navigate("/dashboard");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+useEffect(() => {
+    // רק מציג את המסך הזה, לא עושה שום ניווט אוטומטי
+    // הניווט יקרה רק אחרי שהמשתמש ילחץ על הקישור במייל
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4" dir="rtl">

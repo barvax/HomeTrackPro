@@ -174,13 +174,9 @@ export default function Join() {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: invitation.email,
         password: password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
-          data: {
-            group_id: invitation.group_id,
-            invitation_token: searchParams.get("token"),
-          },
-        },
+       options: {
+  emailRedirectTo: `${window.location.origin}/complete-signup?token=${searchParams.get("token")}`,
+},
       });
 
       if (signUpError) {
