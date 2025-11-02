@@ -39,7 +39,7 @@ useEffect(() => {
             {email}
           </p>
           <p className="text-gray-600 mb-2">
-            לחץ על הקישור בהודעה כדי להשלים את ההרשמה ולהצטרף לקבוצה:
+          אשר את ההזמנה בתיבת הדואר שלך
           </p>
           <p className="text-lg font-semibold text-gray-800">
             {groupName}

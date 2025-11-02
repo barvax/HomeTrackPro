@@ -171,13 +171,18 @@ export default function Join() {
     //     navigate("/dashboard");
     //   }, 1000);
 // הרשם עם המייל וסיסמה (ללא כניסה אוטומטית)
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: invitation.email,
-        password: password,
-       options: {
-  emailRedirectTo: `${window.location.origin}/complete-signup?token=${searchParams.get("token")}`,
-},
-      });
+const token = searchParams.get("token");
+
+const { data: authData, error: signUpError } = await supabase.auth.signUp({
+  email: invitation.email,
+  password: password,
+  options: {
+    emailRedirectTo: `${window.location.origin}/complete-signup?token=${token}`,
+    data: {
+      invitation_token: token,
+    },
+  },
+});
 
       if (signUpError) {
         setError("שגיאה בהרשמה: " + signUpError.message);

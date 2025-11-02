@@ -8,63 +8,72 @@ export default function CompleteSignup() {
   const [status, setStatus] = useState("processing");
   const [message, setMessage] = useState("מצטרף לקבוצה...");
 
-  useEffect(() => {
-    const completeSignup = async () => {
-      try {
-        // בדוק אם המשתמש מחובר (אחרי אימות המייל)
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          setStatus("error");
-          setMessage("לא נמצא משתמש מחובר. נסה להתחבר שוב.");
-          setTimeout(() => navigate("/login"), 3000);
-          return;
-        }
-
-        const token = searchParams.get("token");
-        
-        if (!token) {
-          setStatus("error");
-          setMessage("חסר טוקן הזמנה.");
-          return;
-        }
-
-        // הוסף את המשתמש לקבוצה דרך ה-API
-        const response = await fetch('/api/accept-invitation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            token: token,
-            user_id: session.user.id,
-          })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          setStatus("success");
-          setMessage("הצטרפת בהצלחה לקבוצה! 🎉");
-          
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 2000);
-        } else {
-          setStatus("error");
-          setMessage("שגיאה בהצטרפות לקבוצה: " + result.error);
-        }
-
-      } catch (error) {
-        console.error("Complete signup error:", error);
+useEffect(() => {
+  const completeSignup = async () => {
+    try {
+      console.log("🔍 Step 1: Checking session...");
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("📝 Session:", session ? "EXISTS" : "MISSING");
+      console.log("📝 User ID:", session?.user?.id);
+      
+      if (!session) {
         setStatus("error");
-        setMessage("שגיאה לא צפויה: " + error.message);
+        setMessage("לא נמצא משתמש מחובר. נסה להתחבר שוב.");
+        setTimeout(() => navigate("/login"), 3000);
+        return;
       }
-    };
 
-    completeSignup();
-  }, [searchParams, navigate]);
+      const token = searchParams.get("token");
+      console.log("🎫 Token from URL:", token);
+      
+      if (!token) {
+        setStatus("error");
+        setMessage("חסר טוקן הזמנה.");
+        return;
+      }
 
+      console.log("🚀 Step 2: Calling API to join group...");
+      console.log("📤 Sending:", { token, user_id: session.user.id });
+
+      const response = await fetch('/api/accept-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: token,
+          user_id: session.user.id,
+        })
+      });
+
+      console.log("📥 Response status:", response.status);
+      const result = await response.json();
+      console.log("📥 Response data:", result);
+
+      if (result.success) {
+        console.log("✅ Successfully joined group:", result.group_id);
+        setStatus("success");
+        setMessage("הצטרפת בהצלחה לקבוצה! 🎉");
+        
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      } else {
+        console.error("❌ API returned error:", result.error);
+        setStatus("error");
+        setMessage("שגיאה בהצטרפות לקבוצה: " + result.error);
+      }
+
+    } catch (error) {
+      console.error("💥 Unexpected error:", error);
+      setStatus("error");
+      setMessage("שגיאה לא צפויה: " + error.message);
+    }
+  };
+
+  completeSignup();
+}, [searchParams, navigate]);
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4" dir="rtl">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
