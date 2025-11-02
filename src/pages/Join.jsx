@@ -24,6 +24,8 @@ export default function Join() {
       }
 
       try {
+        console.log("🔍 Fetching invitation with token:", token);
+        
         // שלוף את ההזמנה לפי הטוקן
         const { data, error } = await supabase
           .from("group_invitations")
@@ -37,6 +39,9 @@ export default function Join() {
           `)
           .eq("token", token)
           .single();
+
+        console.log("📥 Invitation data:", data);
+        console.log("❌ Invitation error:", error);
 
         if (error || !data) {
           setError("ההזמנה לא נמצאה. ייתכן שהקישור שגוי.");
@@ -99,90 +104,24 @@ export default function Join() {
     setIsSubmitting(true);
 
     try {
-      // בדוק אם המשתמש כבר קיים
-      const { data: existingUser } = await supabase.auth.signInWithPassword({
+      const token = searchParams.get("token");
+      
+      console.log("🚀 Starting signup for:", invitation.email);
+
+      // הרשם עם המייל וסיסמה
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: invitation.email,
         password: password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/complete-signup?token=${token}`,
+          data: {
+            invitation_token: token,
+          },
+        },
       });
 
-      // אם התחברות הצליחה - המשתמש כבר קיים
-      if (existingUser?.user) {
-        setError("משתמש עם מייל זה כבר קיים. נסה להתחבר במקום להירשם.");
-        setIsSubmitting(false);
-        return;
-      }
-    } catch (signInError) {
-      // אם ההתחברות נכשלה - המשתמש לא קיים, נמשיך להרשמה
-      console.log("User doesn't exist, proceeding with signup");
-    }
-
-    try {
-    //   // הרשם עם המייל וסיסמה
-    //   const { data: authData, error: signUpError } = await supabase.auth.signUp({
-    //     email: invitation.email,
-    //     password: password,
-    //     options: {
-    //       data: {
-    //         group_id: invitation.group_id,
-    //       },
-    //     },
-    //   });
-
-    //   if (signUpError) {
-    //     setError("שגיאה בהרשמה: " + signUpError.message);
-    //     setIsSubmitting(false);
-    //     return;
-    //   }
-
-    //   if (!authData.user) {
-    //     setError("לא ניתן ליצור משתמש. נסה שוב.");
-    //     setIsSubmitting(false);
-    //     return;
-    //   }
-
-    //   // הוסף את המשתמש לקבוצה
-    //   const acceptResponse = await fetch('/api/accept-invitation', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify({
-    //       token: searchParams.get("token"),
-    //       user_id: authData.user.id,
-    //     })
-    //   });
-
-    //   const acceptResult = await acceptResponse.json();
-
-    //   if (!acceptResult.success) {
-    //     console.error("Error adding to group:", acceptResult.error);
-    //     setError("שגיאה בהוספה לקבוצה: " + acceptResult.error);
-    //     setIsSubmitting(false);
-    //     return;
-    //   }
-
-  
-
-    //   // הצלחה!
-    //   alert(`ברוך הבא לקבוצת ${invitation.groups.name}! 🎉`);
-      
-    //   // העבר ל-dashboard
-    //   setTimeout(() => {
-    //     navigate("/dashboard");
-    //   }, 1000);
-// הרשם עם המייל וסיסמה (ללא כניסה אוטומטית)
-const token = searchParams.get("token");
-
-const { data: authData, error: signUpError } = await supabase.auth.signUp({
-  email: invitation.email,
-  password: password,
-  options: {
-    emailRedirectTo: `${window.location.origin}/complete-signup?token=${token}`,
-    data: {
-      invitation_token: token,
-    },
-  },
-});
+      console.log("📝 Signup result:", authData);
+      console.log("❌ Signup error:", signUpError);
 
       if (signUpError) {
         setError("שגיאה בהרשמה: " + signUpError.message);
@@ -196,13 +135,18 @@ const { data: authData, error: signUpError } = await supabase.auth.signUp({
         return;
       }
 
+      console.log("✅ User created:", authData.user.id);
+
       // התנתק מיד אחרי ההרשמה (כדי שלא יכנס אוטומטית)
       await supabase.auth.signOut();
+      
+      console.log("🔓 Signed out, redirecting to verify email...");
 
       // העבר למסך אימות מייל
-      navigate(`/verify-email?email=${encodeURIComponent(invitation.email)}&group=${encodeURIComponent(invitation.groups.name)}`);
+      navigate(`/verify-email?email=${encodeURIComponent(invitation.email)}&group=${encodeURIComponent(invitation.groups.name)}&token=${token}`);
+      
     } catch (err) {
-      console.error("Signup error:", err);
+      console.error("💥 Signup error:", err);
       setError("שגיאה לא צפויה: " + err.message);
       setIsSubmitting(false);
     }
@@ -247,9 +191,9 @@ const { data: authData, error: signUpError } = await supabase.auth.signUp({
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
             <p className="text-sm text-gray-600 mb-1">קבוצה:</p>
             <p className="text-xl font-bold text-blue-600">
-              {invitation.groups.name}
+              {invitation?.groups?.name || "טוען..."}
             </p>
-            {invitation.groups.is_premium && (
+            {invitation?.groups?.is_premium && (
               <span className="inline-block mt-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
                 ✨ PREMIUM
               </span>
@@ -265,7 +209,7 @@ const { data: authData, error: signUpError } = await supabase.auth.signUp({
             </label>
             <input
               type="email"
-              value={invitation.email}
+              value={invitation?.email || ""}
               disabled
               className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
             />
