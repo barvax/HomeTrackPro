@@ -117,13 +117,68 @@ export default function Join() {
     }
 
     try {
-      // הרשם עם המייל וסיסמה
+    //   // הרשם עם המייל וסיסמה
+    //   const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    //     email: invitation.email,
+    //     password: password,
+    //     options: {
+    //       data: {
+    //         group_id: invitation.group_id,
+    //       },
+    //     },
+    //   });
+
+    //   if (signUpError) {
+    //     setError("שגיאה בהרשמה: " + signUpError.message);
+    //     setIsSubmitting(false);
+    //     return;
+    //   }
+
+    //   if (!authData.user) {
+    //     setError("לא ניתן ליצור משתמש. נסה שוב.");
+    //     setIsSubmitting(false);
+    //     return;
+    //   }
+
+    //   // הוסף את המשתמש לקבוצה
+    //   const acceptResponse = await fetch('/api/accept-invitation', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //       token: searchParams.get("token"),
+    //       user_id: authData.user.id,
+    //     })
+    //   });
+
+    //   const acceptResult = await acceptResponse.json();
+
+    //   if (!acceptResult.success) {
+    //     console.error("Error adding to group:", acceptResult.error);
+    //     setError("שגיאה בהוספה לקבוצה: " + acceptResult.error);
+    //     setIsSubmitting(false);
+    //     return;
+    //   }
+
+  
+
+    //   // הצלחה!
+    //   alert(`ברוך הבא לקבוצת ${invitation.groups.name}! 🎉`);
+      
+    //   // העבר ל-dashboard
+    //   setTimeout(() => {
+    //     navigate("/dashboard");
+    //   }, 1000);
+// הרשם עם המייל וסיסמה (ללא כניסה אוטומטית)
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: invitation.email,
         password: password,
         options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             group_id: invitation.group_id,
+            invitation_token: searchParams.get("token"),
           },
         },
       });
@@ -135,42 +190,16 @@ export default function Join() {
       }
 
       if (!authData.user) {
-        setError("לא ניתן ליצור משתמש. נסה שוב.");
+        setError("לא נוצר משתמש. נסה שוב.");
         setIsSubmitting(false);
         return;
       }
 
-      // הוסף את המשתמש לקבוצה
-      const acceptResponse = await fetch('/api/accept-invitation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          token: searchParams.get("token"),
-          user_id: authData.user.id,
-        })
-      });
+      // התנתק מיד אחרי ההרשמה (כדי שלא יכנס אוטומטית)
+      await supabase.auth.signOut();
 
-      const acceptResult = await acceptResponse.json();
-
-      if (!acceptResult.success) {
-        console.error("Error adding to group:", acceptResult.error);
-        setError("שגיאה בהוספה לקבוצה: " + acceptResult.error);
-        setIsSubmitting(false);
-        return;
-      }
-
-  
-
-      // הצלחה!
-      alert(`ברוך הבא לקבוצת ${invitation.groups.name}! 🎉`);
-      
-      // העבר ל-dashboard
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1000);
-
+      // העבר למסך אימות מייל
+      navigate(`/verify-email?email=${encodeURIComponent(invitation.email)}&group=${encodeURIComponent(invitation.groups.name)}`);
     } catch (err) {
       console.error("Signup error:", err);
       setError("שגיאה לא צפויה: " + err.message);

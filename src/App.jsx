@@ -8,7 +8,7 @@ import Sidebar from "./components/Sidebar";
 import Inbox from "./pages/Inbox"; // 👈 נוסיף את זה
 import SetPassword from "./pages/SetPassword";
 import Join from "./pages/Join"
-
+import VerifyEmail from "./pages/VerifyEmail";
 
 import DashboardHome from "./pages/DashboardHome";
 import Tasks from "./pages/Tasks";
@@ -61,6 +61,7 @@ export default function App() {
               <Route path="/inbox" element={<Inbox />} /> {/* 👈 חדש */}
                <Route path="/set-password" element={<SetPassword />} />
                   <Route path="/join" element={<Join />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
              
           </Routes>
         </main>

@@ -15,12 +15,20 @@ export default function Login() {
     setLoading(true);
     try {
       if (isSignUp) {
-        // הרשמה חדשה
-        const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+          }
+        });
         if (error) throw error;
-        alert("נרשמת בהצלחה! בדוק את תיבת המייל שלך לאימות החשבון.");
-        // אחרי הרשמה, אפשר להפנות למסך התחברות
-        setIsSignUp(false);
+        
+        // התנתק מיד כדי למנוע כניסה אוטומטית
+        await supabase.auth.signOut();
+        
+        // העבר למסך אימות מייל
+        window.location.href = `/verify-email?email=${encodeURIComponent(email)}`;
       } else {
         // התחברות רגילה
         const { error } = await supabase.auth.signInWithPassword({ email, password });
