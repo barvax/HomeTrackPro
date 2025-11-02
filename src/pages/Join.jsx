@@ -98,23 +98,26 @@ export default function Join() {
 
     setIsSubmitting(true);
 
-    try {
-      // בדוק אם המשתמש כבר קיים
-    //   const { data: existingUser } = await supabase.auth.signInWithPassword({
-    //     email: invitation.email,
-    //     password: password,
-    //   });
+// ✅ לפני הרישום — בדיקה האם קיים משתמש עם אותו email
+const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers();
 
-      // אם התחברות הצליחה - המשתמש כבר קיים
-      if (existingUser?.user) {
-        setError("משתמש עם מייל זה כבר קיים. נסה להתחבר במקום להירשם.");
-        setIsSubmitting(false);
-        return;
-      }
-    } catch (signInError) {
-      // אם ההתחברות נכשלה - המשתמש לא קיים, נמשיך להרשמה
-      console.log("User doesn't exist, proceeding with signup");
-    }
+if (listError) {
+  setError("שגיאה בבדיקת משתמש קיים: " + listError.message);
+  setIsSubmitting(false);
+  return;
+}
+
+// חיפוש user לפי המייל של ההזמנה
+const foundUser = existingUsers.users.find(
+  (u) => u.email?.toLowerCase() === invitation.email.toLowerCase()
+);
+
+if (foundUser) {
+  // ✅ המשתמש כבר קיים → אסור להזמין אותו שוב
+  setError("משתמש עם מייל זה כבר קיים במערכת. יש להתחבר במקום להירשם.");
+  setIsSubmitting(false);
+  return;
+}
 
     try {
     //   // הרשם עם המייל וסיסמה
