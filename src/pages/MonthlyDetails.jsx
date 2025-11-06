@@ -131,7 +131,7 @@ export default function MonthlyDetails() {
     try {
       // עצירת bubble כדי לא לפתוח את חלון העריכה
       // (נשתמש בזה כשנלחץ על האיקון)
-      if (row._stopOpen) return;
+      // if (row._stopOpen) return;
 
       if (row.mode === "installments") {
         const ok = confirm("מחק את כל הסדרה של התשלומים?");
@@ -308,7 +308,7 @@ export default function MonthlyDetails() {
                 {r.kind === "income" ? "+" : "−"} {CURRENCY} {fmt(r.amount)}
               </div>
               <button
-                onClick={() => handleDelete({ ...r, _stopOpen: true })}
+              onClick={(e) => { e.stopPropagation(); handleDelete(r); }}
                 className="text-zinc-500 hover:text-red-600"
                 title="מחיקה"
                 aria-label="מחיקה"
