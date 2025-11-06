@@ -59,6 +59,15 @@ export default function MonthlyDetails() {
   // סינון קטגוריה (null = הכל)
   const [filterCatId, setFilterCatId] = useState(null);
   const [showFilter, setShowFilter] = useState(false);
+// מסנן סוג הוצאה (multi-select): one_time | recurring | installments
+const [selectedModes, setSelectedModes] = useState([
+  "one_time",
+  "recurring",
+  "installments",
+]);
+
+// פתיחת חלון מסנן סוג הוצאה
+const [showTypeFilter, setShowTypeFilter] = useState(false);
 
   // פופ-אפ פרטי רשומה
   const [editingRow, setEditingRow] = useState(null);
@@ -111,10 +120,21 @@ export default function MonthlyDetails() {
   }, []);
 
   // סינון לפי קטגוריה
-  const visibleRows = useMemo(() => {
-    if (!filterCatId) return rows;
-    return rows.filter((r) => r.category_id === filterCatId);
-  }, [rows, filterCatId]);
+// סינון לפי סוג הוצאה (על הוצאות בלבד), ואז לפי קטגוריה
+const visibleRows = useMemo(() => {
+  // שלב 1: סוג הוצאה
+  const byType = rows.filter((r) => {
+    if (r.kind === "income") return true; // המסנן משפיע רק על הוצאות
+    const mode = r.mode || "one_time";   // ברירת מחדל להיסטוריות
+    // אם למשתמש יצא "לכבות" את שלושתם — נתייחס כאילו הכול מסומן
+    const active = selectedModes?.length ? selectedModes : ["one_time","recurring","installments"];
+    return active.includes(mode);
+  });
+
+  // שלב 2: קטגוריה
+  if (!filterCatId) return byType;
+  return byType.filter((r) => r.category_id === filterCatId);
+}, [rows, selectedModes, filterCatId]);
 
   // סיכומים (לפי הסינון)
   const totals = useMemo(() => {
@@ -207,6 +227,14 @@ export default function MonthlyDetails() {
           >
             סינון לפי קטגוריה
           </button>
+          <button
+  onClick={() => setShowTypeFilter(true)}
+  className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
+  title="סינון לפי סוג הוצאה"
+>
+  סוג הוצאה
+</button>
+
           <Link
             to="/"
             className="text-sm text-blue-600 hover:underline whitespace-nowrap"
@@ -235,6 +263,64 @@ export default function MonthlyDetails() {
           </button>
         </div>
       )}
+{/* מודל סינון לפי סוג הוצאה */}
+{showTypeFilter && (
+  <Modal title="בחר סוג הוצאה" onClose={() => setShowTypeFilter(false)}>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {[
+          { id: "one_time", label: "חד־פעמי" },
+          { id: "recurring", label: "קבועה" },
+          { id: "installments", label: "תשלומים" },
+        ].map((opt) => {
+          const active = selectedModes.includes(opt.id);
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => {
+                if (active) {
+                  // לא נשאיר מצב “ריק” — אם זה האחרון, אל תבטל
+                  if (selectedModes.length === 1) return;
+                  setSelectedModes(selectedModes.filter((m) => m !== opt.id));
+                } else {
+                  setSelectedModes([...selectedModes, opt.id]);
+                }
+              }}
+              className={`px-3 py-1.5 rounded-full border text-sm ${
+                active ? "bg-blue-600 text-white border-blue-600" : "bg-zinc-100 text-zinc-700 border-zinc-200"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div className="text-xs text-zinc-500">
+          נבחרו {selectedModes.length}/3
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedModes(["one_time","recurring","installments"])}
+            className="rounded-lg px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-sm"
+          >
+            איפוס
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowTypeFilter(false)}
+            className="rounded-lg px-3 py-1.5 bg-black text-white text-sm"
+          >
+            סגור
+          </button>
+        </div>
+      </div>
+    </div>
+  </Modal>
+)}
 
       {/* סיכומים */}
       <div className="grid grid-cols-3 gap-3 mb-4">
