@@ -14,6 +14,8 @@ import DashboardHome from "./pages/DashboardHome";
 import Tasks from "./pages/Tasks";
 import Budget from "./pages/Budget";
 import Settings from "./pages/Settings";
+import KidPage from "./pages/dashboard/KidPage";
+
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -78,6 +80,7 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<IncomeExpenses />} />
                     <Route path="/dashboard" element={<DashboardHome />} />
+                    <Route path="/kid/:id" element={<KidPage />} />
                     <Route path="/tasks" element={<Tasks />} />
                     <Route path="/budget" element={<Budget />} />
                     <Route path="/settings" element={<Settings />} />

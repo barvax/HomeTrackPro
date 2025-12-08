@@ -55,6 +55,23 @@ export default function MonthlyDetails() {
   const [cats, setCats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  // מיון לפי תאריך: near = הכי קרוב להיום (דיפולט), asc = מהישן לחדש, desc = מהחדש לישן
+  const [sortDir, setSortDir] = useState("near");
+
+  const sortLabel =
+    sortDir === "near"
+      ? "תאריך (קרוב להיום)"
+      : sortDir === "desc"
+      ? "תאריך ↓"
+      : "תאריך ↑";
+
+  const handleToggleSort = () => {
+    setSortDir((prev) => {
+      if (prev === "near") return "desc"; // לחיצה ראשונה → חדש למעלה
+      if (prev === "desc") return "asc";  // לחיצה שנייה → ישן למעלה
+      return "desc";                      // ואז מחזור בין desc/asc
+    });
+  };
 
   // סינון קטגוריה (null = הכל)
   const [filterCatId, setFilterCatId] = useState(null);
@@ -126,15 +143,53 @@ const visibleRows = useMemo(() => {
   const byType = rows.filter((r) => {
     if (r.kind === "income") return true; // המסנן משפיע רק על הוצאות
     const mode = r.mode || "one_time";   // ברירת מחדל להיסטוריות
-    // אם למשתמש יצא "לכבות" את שלושתם — נתייחס כאילו הכול מסומן
-    const active = selectedModes?.length ? selectedModes : ["one_time","recurring","installments"];
+    const active = selectedModes?.length
+      ? selectedModes
+      : ["one_time", "recurring", "installments"];
     return active.includes(mode);
   });
 
   // שלב 2: קטגוריה
-  if (!filterCatId) return byType;
-  return byType.filter((r) => r.category_id === filterCatId);
-}, [rows, selectedModes, filterCatId]);
+  const filtered = !filterCatId
+    ? byType
+    : byType.filter((r) => r.category_id === filterCatId);
+
+  // שלב 3: מיון לפי תאריך
+  const sorted = [...filtered];
+  if (!sorted.length) return sorted;
+
+  const today = new Date();
+  const todayMid = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  ).getTime();
+
+  sorted.sort((a, b) => {
+    const ta = new Date(a.tx_date).getTime();
+    const tb = new Date(b.tx_date).getTime();
+
+    if (sortDir === "asc") {
+      // מהישן לחדש
+      return ta - tb;
+    }
+    if (sortDir === "desc") {
+      // מהחדש לישן
+      return tb - ta;
+    }
+
+    // sortDir === "near" – דיפולט: הכי קרוב להיום למעלה
+    const da = Math.abs(ta - todayMid);
+    const db = Math.abs(tb - todayMid);
+    if (da !== db) return da - db; // מי שקרוב יותר עולה למעלה
+
+    // במצב תיקו – מיון רגיל מהישן לחדש
+    return ta - tb;
+  });
+
+  return sorted;
+}, [rows, selectedModes, filterCatId, sortDir]);
+
 
   // סיכומים (לפי הסינון)
   const totals = useMemo(() => {
@@ -234,7 +289,15 @@ const visibleRows = useMemo(() => {
 >
   סוג הוצאה
 </button>
-
+    {/* כפתור מיון לפי תאריך */}
+          <button
+            type="button"
+            onClick={handleToggleSort}
+            className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
+            title="מיון לפי תאריך"
+          >
+            {sortLabel}
+          </button>
           <Link
             to="/"
             className="text-sm text-blue-600 hover:underline whitespace-nowrap"
