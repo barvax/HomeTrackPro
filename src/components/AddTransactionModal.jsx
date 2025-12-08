@@ -274,7 +274,8 @@ export default function AddTransactionModal({
       </div>
 
       {/* רשת קטגוריות */}
-      <div className="grid grid-cols-4 gap-3">
+     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 overflow-x-hidden">
+
         {cats.map((c) => {
           const active = selectedCat?.id === c.id;
           // קטגוריות עם מסגרת אדומה עדינה

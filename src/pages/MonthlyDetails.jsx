@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import * as Icons from "lucide-react";
+import { ArrowRight } from "lucide-react";
+
 
 const CURRENCY = "₪";
 const fmt = (n) =>
@@ -267,160 +269,178 @@ const visibleRows = useMemo(() => {
     );
   }
 
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-4 gap-3">
-        <h1 className="text-xl font-semibold">
-          פירוט חודשי — {monthLabel(year, month)}
-        </h1>
+return (
+  <div className="max-w-3xl mx-auto px-4 py-6 overflow-x-hidden">
+    {/* שורת עליונה – כותרת באמצע, חץ חזרה בצד ימין */}
+  <div className="flex items-center justify-between mb-4">
+    {/* ספייסר בצד שמאל לשמירה על סימטריה */}
+    <div className="w-8" />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFilter(true)}
-            className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
-            title="סינון לפי קטגוריה"
-          >
-            סינון לפי קטגוריה
-          </button>
-          <button
-  onClick={() => setShowTypeFilter(true)}
-  className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
-  title="סינון לפי סוג הוצאה"
->
-  סוג הוצאה
-</button>
-    {/* כפתור מיון לפי תאריך */}
-          <button
-            type="button"
-            onClick={handleToggleSort}
-            className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
-            title="מיון לפי תאריך"
-          >
-            {sortLabel}
-          </button>
-          <Link
-            to="/"
-            className="text-sm text-blue-600 hover:underline whitespace-nowrap"
-          >
-            חזרה לסיכום
-          </Link>
-        </div>
+    {/* כותרת במרכז */}
+    <h1 className="text-xl font-semibold text-center flex-1 ml-2">
+      פירוט חודשי — {monthLabel(year, month)}
+    </h1>
+
+    {/* חזרה לסיכום – איקון בצד ימין */}
+    <Link
+      to="/"
+      className="p-2 rounded-lg hover:bg-zinc-200 active:bg-zinc-300"
+      title="חזרה לסיכום"
+    >
+      <ArrowRight size={22} className="text-zinc-700" />
+    </Link>
+  </div>
+
+    {/* כפתורי סינון ומיון – בשורה נפרדת, רספונסיבי */}
+    <div className="flex flex-wrap items-center gap-2 mb-4">
+      <button
+        onClick={() => setShowFilter(true)}
+        className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
+        title="סינון לפי קטגוריה"
+      >
+        סינון לפי קטגוריה
+      </button>
+
+      <button
+        onClick={() => setShowTypeFilter(true)}
+        className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
+        title="סוג הוצאה"
+      >
+        סוג הוצאה
+      </button>
+
+      <button
+        type="button"
+        onClick={handleToggleSort}
+        className="rounded-xl px-3 py-2 bg-white shadow hover:bg-zinc-50 text-sm"
+        title="מיון לפי תאריך"
+      >
+        {sortLabel}
+      </button>
+    </div>
+
+    {/* תיאור סינון פעיל */}
+    {filterCatId && (
+      <div className="mb-3 text-xs text-zinc-600">
+        מסונן לפי:{" "}
+        <span className="inline-flex items-center gap-1 font-medium">
+          <CategoryIcon
+            name={cats.find((c) => c.id === filterCatId)?.icon}
+            className="!text-zinc-500"
+          />
+          {cats.find((c) => c.id === filterCatId)?.name || "—"}
+        </span>
+        <button
+          onClick={() => setFilterCatId(null)}
+          className="ml-2 text-blue-600 hover:underline"
+        >
+          נקה סינון
+        </button>
       </div>
+    )}
 
-      {/* תיאור סינון פעיל */}
-      {filterCatId && (
-        <div className="mb-3 text-xs text-zinc-600">
-          מסונן לפי:{" "}
-          <span className="inline-flex items-center gap-1 font-medium">
-            <CategoryIcon
-              name={cats.find((c) => c.id === filterCatId)?.icon}
-              className="!text-zinc-500"
-            />
-            {cats.find((c) => c.id === filterCatId)?.name || "—"}
-          </span>
-          <button
-            onClick={() => setFilterCatId(null)}
-            className="ml-2 text-blue-600 hover:underline"
-          >
-            נקה סינון
-          </button>
-        </div>
-      )}
-{/* מודל סינון לפי סוג הוצאה */}
-{showTypeFilter && (
-  <Modal title="בחר סוג הוצאה" onClose={() => setShowTypeFilter(false)}>
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {[
-          { id: "one_time", label: "חד־פעמי" },
-          { id: "recurring", label: "קבועה" },
-          { id: "installments", label: "תשלומים" },
-        ].map((opt) => {
-          const active = selectedModes.includes(opt.id);
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => {
-                if (active) {
-                  // לא נשאיר מצב “ריק” — אם זה האחרון, אל תבטל
-                  if (selectedModes.length === 1) return;
-                  setSelectedModes(selectedModes.filter((m) => m !== opt.id));
-                } else {
-                  setSelectedModes([...selectedModes, opt.id]);
+    {/* מודל סינון לפי סוג הוצאה */}
+    {showTypeFilter && (
+      <Modal title="בחר סוג הוצאה" onClose={() => setShowTypeFilter(false)}>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: "one_time", label: "חד־פעמי" },
+              { id: "recurring", label: "קבועה" },
+              { id: "installments", label: "תשלומים" },
+            ].map((opt) => {
+              const active = selectedModes.includes(opt.id);
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    if (active) {
+                      // לא נשאיר מצב “ריק” — אם זה האחרון, אל תבטל
+                      if (selectedModes.length === 1) return;
+                      setSelectedModes(
+                        selectedModes.filter((m) => m !== opt.id)
+                      );
+                    } else {
+                      setSelectedModes([...selectedModes, opt.id]);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-full border text-sm ${
+                    active
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-zinc-100 text-zinc-700 border-zinc-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-zinc-500">
+              נבחרו {selectedModes.length}/3
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedModes(["one_time", "recurring", "installments"])
                 }
-              }}
-              className={`px-3 py-1.5 rounded-full border text-sm ${
-                active ? "bg-blue-600 text-white border-blue-600" : "bg-zinc-100 text-zinc-700 border-zinc-200"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex justify-between items-center">
-        <div className="text-xs text-zinc-500">
-          נבחרו {selectedModes.length}/3
+                className="rounded-lg px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-sm"
+              >
+                איפוס
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowTypeFilter(false)}
+                className="rounded-lg px-3 py-1.5 bg-black text-white text-sm"
+              >
+                סגור
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setSelectedModes(["one_time","recurring","installments"])}
-            className="rounded-lg px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-sm"
-          >
-            איפוס
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowTypeFilter(false)}
-            className="rounded-lg px-3 py-1.5 bg-black text-white text-sm"
-          >
-            סגור
-          </button>
+      </Modal>
+    )}
+
+    {/* סיכומים */}
+    <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="rounded-xl bg-white shadow p-3 text-center">
+        <div className="text-xs text-zinc-500">הכנסה</div>
+        <div className="text-xs font-semibold">
+          {CURRENCY} {fmt(totals.income)}
+        </div>
+      </div>
+      <div className="rounded-xl bg-white shadow p-3 text-center">
+        <div className="text-xs text-zinc-500">הוצאה</div>
+        <div className="text-xs font-semibold">
+          {CURRENCY} {fmt(totals.expense)}
+        </div>
+      </div>
+      <div className="rounded-xl bg-white shadow p-3 text-center">
+        <div className="text-xs text-zinc-500">
+          {totals.remaining >= 0 ? "יתרה" : "במינוס"}
+        </div>
+        <div className="text-xs font-semibold">
+          {CURRENCY} {fmt(Math.abs(totals.remaining))}
         </div>
       </div>
     </div>
-  </Modal>
-)}
 
-      {/* סיכומים */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="rounded-xl bg-white shadow p-3 text-center">
-          <div className="text-xs text-zinc-500">הכנסה</div>
-          <div className="text-xs font-semibold">
-            {CURRENCY} {fmt(totals.income)}
-          </div>
-        </div>
-        <div className="rounded-xl bg-white shadow p-3 text-center">
-          <div className="text-xs text-zinc-500">הוצאה</div>
-          <div className="text-xs font-semibold">
-            {CURRENCY} {fmt(totals.expense)}
-          </div>
-        </div>
-        <div className="rounded-xl bg-white shadow p-3 text-center">
-          <div className="text-xs text-zinc-500">
-            {totals.remaining >= 0 ? "יתרה" : "במינוס"}
-          </div>
-          <div className="text-xs font-semibold">
-            {CURRENCY} {fmt(Math.abs(totals.remaining))}
-          </div>
-        </div>
+    {err && (
+      <div className="mb-3 rounded-md bg-red-50 border border-red-200 p-3 text-red-700 text-sm">
+        {err}
       </div>
+    )}
+    {loading && <div className="text-zinc-500">טוען…</div>}
 
-      {err && (
-        <div className="mb-3 rounded-md bg-red-50 border border-red-200 p-3 text-red-700 text-sm">
-          {err}
-        </div>
-      )}
-      {loading && <div className="text-zinc-500">טוען…</div>}
+    {/* רשימת רשומות */}
+    {!loading && visibleRows.length === 0 && (
+      <div className="text-zinc-500">אין רשומות לחודש הזה.</div>
+    )}
 
-      {/* רשימת רשומות */}
-      {!loading && visibleRows.length === 0 && (
-        <div className="text-zinc-500">אין רשומות לחודש הזה.</div>
-      )}
-
+    <div className="overflow-x-hidden">
       <ul className="space-y-2">
         {visibleRows.map((r) => (
           <li
@@ -451,13 +471,18 @@ const visibleRows = useMemo(() => {
             >
               <div
                 className={`font-semibold ${
-                  r.kind === "income" ? "text-emerald-600" : "text-rose-600"
+                  r.kind === "income"
+                    ? "text-emerald-600"
+                    : "text-rose-600"
                 }`}
               >
                 {r.kind === "income" ? "+" : "−"} {CURRENCY} {fmt(r.amount)}
               </div>
               <button
-              onClick={(e) => { e.stopPropagation(); handleDelete(r); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(r);
+                }}
                 className="text-zinc-500 hover:text-red-600"
                 title="מחיקה"
                 aria-label="מחיקה"
@@ -468,57 +493,59 @@ const visibleRows = useMemo(() => {
           </li>
         ))}
       </ul>
+    </div>
 
-      {/* מודל סינון לפי קטגוריה */}
-      {showFilter && (
-        <Modal title="בחר קטגוריה" onClose={() => setShowFilter(false)}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    {/* מודל סינון לפי קטגוריה */}
+    {showFilter && (
+      <Modal title="בחר קטגוריה" onClose={() => setShowFilter(false)}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <button
+            onClick={() => {
+              setFilterCatId(null);
+              setShowFilter(false);
+            }}
+            className={`flex items-center gap-2 rounded-xl border p-2 hover:bg-zinc-50 ${
+              filterCatId === null ? "bg-zinc-100" : ""
+            }`}
+          >
+            <Icons.ListChecks size={18} className="text-zinc-600" />
+            הכל
+          </button>
+
+          {cats.map((c) => (
             <button
+              key={c.id}
               onClick={() => {
-                setFilterCatId(null);
+                setFilterCatId(c.id);
                 setShowFilter(false);
               }}
               className={`flex items-center gap-2 rounded-xl border p-2 hover:bg-zinc-50 ${
-                filterCatId === null ? "bg-zinc-100" : ""
+                filterCatId === c.id ? "bg-zinc-100" : ""
               }`}
             >
-              <Icons.ListChecks size={18} className="text-zinc-600" />
-              הכל
+              <CategoryIcon name={c.icon} />
+              {c.name}
             </button>
+          ))}
+        </div>
+      </Modal>
+    )}
 
-            {cats.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => {
-                  setFilterCatId(c.id);
-                  setShowFilter(false);
-                }}
-                className={`flex items-center gap-2 rounded-xl border p-2 hover:bg-zinc-50 ${
-                  filterCatId === c.id ? "bg-zinc-100" : ""
-                }`}
-              >
-                <CategoryIcon name={c.icon} />
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </Modal>
-      )}
+    {/* מודל עריכת רשומה */}
+    {editingRow && (
+      <EditTransactionModal
+        row={editingRow}
+        cats={cats}
+        onClose={closeEdit}
+        onSaved={(updated) => {
+          patchRow(updated);
+          closeEdit();
+        }}
+      />
+    )}
+  </div>
+);
 
-      {/* מודל עריכת רשומה */}
-      {editingRow && (
-        <EditTransactionModal
-          row={editingRow}
-          cats={cats}
-          onClose={closeEdit}
-          onSaved={(updated) => {
-            patchRow(updated);
-            closeEdit();
-          }}
-        />
-      )}
-    </div>
-  );
 }
 
 /* ──────────────────────────────── */
