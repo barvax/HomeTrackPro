@@ -14,8 +14,6 @@ import DashboardHome from "./pages/DashboardHome";
 import Tasks from "./pages/Tasks";
 import Budget from "./pages/Budget";
 import Settings from "./pages/Settings";
-import KidPage from "./pages/dashboard/KidPage";
-
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -27,11 +25,11 @@ export default function App() {
       setSession(data.session);
       setLoading(false);
     });
-    
+
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
     });
-    
+
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -46,21 +44,21 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* ✅ ראוטים ציבוריים - נגישים תמיד (ללא session) */}
+        {/* ראוטים ציבוריים */}
         <Route path="/join" element={<Join />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/complete-signup" element={<CompleteSignup />} />
         <Route path="/set-password" element={<SetPassword />} />
 
-        {/* ✅ אם אין session - הצג login בכל דף אחר */}
+        {/* אם אין session – תמיד Login */}
         {!session ? (
           <Route path="*" element={<Login />} />
         ) : (
-          /* ✅ יש session - הצג את האפליקציה עם Sidebar */
           <Route
             path="*"
             element={
-              <div className="relative flex min-h-screen bg-zinc-50">
+              // 👇 כאן קיבעתי את האבא: overflow-x-hidden
+              <div className="relative flex min-h-screen bg-zinc-50 overflow-x-hidden">
                 {/* המבורגר – רק במובייל */}
                 <button
                   aria-label="Open menu"
@@ -74,13 +72,16 @@ export default function App() {
                   </div>
                 </button>
 
-                <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+                <Sidebar
+                  mobileOpen={mobileOpen}
+                  setMobileOpen={setMobileOpen}
+                />
 
-                <main className="flex-1 p-6 pt-16 md:pt-6">
+                {/* 👇 גם כאן דאגנו שלא יגלוש רוחב */}
+                <main className="flex-1 p-6 pt-16 md:pt-6 max-w-5xl mx-auto w-full">
                   <Routes>
                     <Route path="/" element={<IncomeExpenses />} />
                     <Route path="/dashboard" element={<DashboardHome />} />
-                    <Route path="/kid/:id" element={<KidPage />} />
                     <Route path="/tasks" element={<Tasks />} />
                     <Route path="/budget" element={<Budget />} />
                     <Route path="/settings" element={<Settings />} />
