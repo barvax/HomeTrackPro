@@ -52,20 +52,12 @@ export default function TasksLists() {
     setCreatingTask(true);
     setErr("");
 
-    const { data: ures, error: uerr } = await supabase.auth.getUser();
-    if (uerr) {
-      setErr(uerr.message);
-      setCreatingTask(false);
-      return;
-    }
+    const { data: ures } = await supabase.auth.getUser();
     const userId = ures?.user?.id;
 
-    const { error } = await supabase.from("tasks").insert([
-      {
-        user_id: userId,
-        title: newTitle.trim(),
-      },
-    ]);
+    const { error } = await supabase
+      .from("tasks")
+      .insert([{ user_id: userId, title: newTitle.trim() }]);
 
     if (error) setErr(error.message);
 
@@ -91,12 +83,9 @@ export default function TasksLists() {
   async function addItem(taskId, text, resetInput) {
     if (!text.trim()) return;
 
-    const { error } = await supabase.from("task_items").insert([
-      {
-        task_id: taskId,
-        text: text.trim(),
-      },
-    ]);
+    const { error } = await supabase
+      .from("task_items")
+      .insert([{ task_id: taskId, text: text.trim() }]);
 
     if (!error) {
       resetInput("");
@@ -144,11 +133,7 @@ export default function TasksLists() {
     if (!ok) return;
 
     const { error } = await supabase.from("tasks").delete().eq("id", task.id);
-
-    if (error) {
-      setErr(error.message);
-      return;
-    }
+    if (error) return setErr(error.message);
 
     setTasks((prev) => prev.filter((t) => t.id !== task.id));
     setItems((prev) => {
@@ -156,25 +141,15 @@ export default function TasksLists() {
       delete copy[task.id];
       return copy;
     });
-    if (openTaskId === task.id) {
-      setOpenTaskId(null);
-    }
+    if (openTaskId === task.id) setOpenTaskId(null);
   }
 
   /* ---------------------- DUPLICATE TASK ---------------------- */
   async function duplicateTask(task) {
     setErr("");
 
-    const { data: ures, error: uerr } = await supabase.auth.getUser();
-    if (uerr) {
-      setErr(uerr.message);
-      return;
-    }
+    const { data: ures } = await supabase.auth.getUser();
     const userId = ures?.user?.id;
-    if (!userId) {
-      setErr("לא נמצא משתמש מחובר");
-      return;
-    }
 
     const newTitle = `${task.title} (העתק)`;
 
@@ -184,38 +159,22 @@ export default function TasksLists() {
       .select()
       .single();
 
-    if (insErr) {
-      setErr(insErr.message);
-      return;
-    }
+    if (insErr) return setErr(insErr.message);
 
     const newTaskId = newTaskRows.id;
 
-    const { data: srcItems, error: srcErr } = await supabase
+    const { data: srcItems } = await supabase
       .from("task_items")
       .select("*")
       .eq("task_id", task.id);
 
-    if (srcErr) {
-      setErr(srcErr.message);
-      return;
-    }
-
     if (srcItems && srcItems.length > 0) {
-      const cloneRows = srcItems.map((it) => ({
+      const cloneRows = srcItems.map((i) => ({
         task_id: newTaskId,
-        text: it.text,
-        done: it.done,
+        text: i.text,
+        done: i.done,
       }));
-
-      const { error: cloneErr } = await supabase
-        .from("task_items")
-        .insert(cloneRows);
-
-      if (cloneErr) {
-        setErr(cloneErr.message);
-        return;
-      }
+      await supabase.from("task_items").insert(cloneRows);
     }
 
     await loadTasks();
@@ -226,7 +185,8 @@ export default function TasksLists() {
   /* ---------------------- RENAME TASK ---------------------- */
   async function renameTask(task) {
     const newName = window.prompt("עריכת שם הרשימה:", task.title);
-    if (!newName) return; // ביטול
+    if (!newName) return;
+
     const trimmed = newName.trim();
     if (!trimmed || trimmed === task.title.trim()) return;
 
@@ -235,38 +195,34 @@ export default function TasksLists() {
       .update({ title: trimmed })
       .eq("id", task.id);
 
-    if (error) {
-      setErr(error.message);
-      return;
+    if (!error) {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, title: trimmed } : t))
+      );
     }
-
-    setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, title: trimmed } : t))
-    );
   }
 
   /* ---------------------- RENDER ---------------------- */
   return (
-    <div className="space-y-4">
+    <div className="max-w-3xl mx-auto px-4 overflow-x-hidden space-y-4">
       <h2 className="text-lg font-semibold">רשימות</h2>
 
-      {/* יצירת Task חדש */}
+      {/* יצירת רשימה */}
       <form
         onSubmit={handleCreateTask}
-        className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center"
+        className="flex flex-col sm:flex-row gap-2"
       >
         <input
           type="text"
           placeholder="כותרת רשימה חדשה (למשל: רשימת קניות)"
-          className="flex-1 rounded-xl border border-zinc-300 px-3 py-2 text-sm bg-white"
+          className="flex-1 rounded-xl border px-3 py-2 bg-white text-sm"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
         />
-
         <button
           type="submit"
-          disabled={creatingTask || !newTitle.trim()}
-          className="rounded-xl px-4 py-2 bg-blue-600 text-white text-sm font-medium disabled:opacity-50"
+          disabled={!newTitle.trim() || creatingTask}
+          className="rounded-xl px-4 py-2 bg-blue-600 text-white text-sm"
         >
           {creatingTask ? "יוצר..." : "צור רשימה"}
         </button>
@@ -278,15 +234,12 @@ export default function TasksLists() {
         </div>
       )}
 
-      {loading && <div className="text-sm text-zinc-500">טוען רשימות…</div>}
+      {loading && <div className="text-sm text-zinc-500">טוען…</div>}
 
       {!loading && tasks.length === 0 && (
-        <div className="text-sm text-zinc-500">
-          אין רשימות עדיין. אפשר להתחיל ליצור 😊
-        </div>
+        <div className="text-sm text-zinc-500">אין רשימות עדיין.</div>
       )}
 
-      {/* TASK ACCORDIONS */}
       <div className="space-y-3">
         {tasks.map((task) => {
           const isOpen = openTaskId === task.id;
@@ -295,13 +248,36 @@ export default function TasksLists() {
           return (
             <div
               key={task.id}
-              className="rounded-xl bg-white shadow border border-zinc-200"
+              className="rounded-xl bg-white border shadow-sm"
             >
-              {/* HEADER ROW */}
-              <div className="flex items-center justify-between px-3 py-2.5">
-                {/* כותרת + פתיחה/סגירה */}
+              {/* HEADER */}
+              <div className="flex items-center justify-between px-3 py-3">
+                <div className="flex-1 flex items-center gap-2">
+                  <span className="font-medium text-sm">{task.title}</span>
+
+                  <button
+                    onClick={() => renameTask(task)}
+                    className="text-zinc-500 hover:text-zinc-800"
+                  >
+                    <Icons.Pencil size={18} />
+                  </button>
+
+                  <button
+                    onClick={() => duplicateTask(task)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    <Icons.Copy size={18} />
+                  </button>
+
+                  <button
+                    onClick={() => deleteTask(task)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Icons.Trash2 size={18} />
+                  </button>
+                </div>
+
                 <button
-                  type="button"
                   onClick={() => {
                     if (isOpen) {
                       setOpenTaskId(null);
@@ -310,86 +286,40 @@ export default function TasksLists() {
                       if (!items[task.id]) loadTaskItems(task.id);
                     }
                   }}
-                  className="flex-1 text-right"
+                  className="flex items-center gap-1 text-zinc-600 hover:text-black"
                 >
-                  <div className="font-medium text-sm">{task.title}</div>
-                  <div className="text-xs text-zinc-500">
-                    {isOpen ? "סגור" : "פתח"}
-                  </div>
+                  <span className="text-sm">{isOpen ? "סגור" : "פתח"}</span>
+                  {isOpen ? (
+                    <Icons.ChevronDown size={16} />
+                  ) : (
+                    <Icons.ChevronLeft size={16} />
+                  )}
                 </button>
-
-                {/* כפתורי פעולה על הטאסק */}
-                <div className="flex items-center gap-2 mr-2">
-                  {/* עריכה */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      renameTask(task);
-                    }}
-                    className="text-zinc-500 hover:text-zinc-800"
-                    title="עריכת שם הרשימה"
-                  >
-                    <Icons.Pencil size={18} />
-                  </button>
-
-                  {/* שכפול */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      duplicateTask(task);
-                    }}
-                    className="text-blue-600 hover:text-blue-800"
-                    title="שכפל רשימה"
-                  >
-                    <Icons.Copy size={18} />
-                  </button>
-
-                  {/* מחיקה */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteTask(task);
-                    }}
-                    className="text-red-600 hover:text-red-800"
-                    title="מחק רשימה"
-                  >
-                    <Icons.Trash2 size={18} />
-                  </button>
-                </div>
               </div>
 
               {/* BODY */}
               {isOpen && (
-                <div className="border-t border-zinc-100 px-3 py-3 space-y-3">
-                  {/* Loading */}
+                <div className="px-3 py-3 border-t space-y-3">
                   {!subItems && (
                     <div className="text-xs text-zinc-500">טוען פריטים…</div>
                   )}
 
-                  {/* Empty */}
                   {subItems && subItems.length === 0 && (
-                    <div className="text-xs text-zinc-500">
-                      אין פריטים עדיין.
-                    </div>
+                    <div className="text-xs text-zinc-500">אין פריטים.</div>
                   )}
 
-                  {/* LIST OF SUB ITEMS */}
+                  {/* ITEMS */}
                   {subItems &&
                     subItems.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-zinc-50 border"
+                        className="flex items-center justify-between bg-zinc-50 p-2 rounded-lg border"
                       >
-                        {/* Checkbox + Text */}
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={item.done}
                             onChange={() => toggleDone(item)}
-                            className="w-5 h-5 border-2 border-zinc-400 rounded"
                           />
 
                           <span
@@ -403,19 +333,19 @@ export default function TasksLists() {
                           </span>
                         </div>
 
-                        {/* Delete */}
                         <button
                           onClick={() => deleteItem(item)}
                           className="text-zinc-500 hover:text-red-600"
-                          title="מחק פריט"
                         >
                           <Icons.Trash2 size={16} />
                         </button>
                       </div>
                     ))}
 
-                  {/* ADD NEW SUB ITEM */}
-                  <AddSubItem taskId={task.id} addItem={addItem} />
+                  <AddSubItem
+                    taskId={task.id}
+                    addItem={addItem}
+                  />
                 </div>
               )}
             </div>
@@ -426,7 +356,7 @@ export default function TasksLists() {
   );
 }
 
-/* ---------------------- COMPONENT: Add Sub Item ---------------------- */
+/* ---------------------- AddSubItem Component ---------------------- */
 function AddSubItem({ taskId, addItem }) {
   const [text, setText] = useState("");
 
@@ -434,18 +364,17 @@ function AddSubItem({ taskId, addItem }) {
     <div className="flex items-center gap-2">
       <input
         type="text"
-        placeholder="הוסף פריט חדש…"
-        className="flex-1 rounded-lg border px-3 py-2 text-sm bg-white"
+        placeholder="הוסף פריט…"
+        className="flex-1 rounded-lg border px-3 py-2 text-sm"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
 
       <button
         onClick={() => addItem(taskId, text, setText)}
-        disabled={!text.trim()}
-        className="rounded-lg px-3 py-2 bg-blue-600 text-white text-sm disabled:opacity-40"
+        className="rounded-lg px-3 py-2 bg-blue-600 text-white text-sm"
       >
-        +
+        הוסף
       </button>
     </div>
   );
