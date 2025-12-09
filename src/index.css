@@ -1,2 +1,17 @@
 @import "tailwindcss";
 
+
+
+/* ✋ לא לאפשר גלילה אופקית בכל האתר */
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* אופציונלי – לוודא שאין מרווחים מוזרים בדפדפנים שונים */
+body {
+  margin: 0;
+}
